@@ -110,7 +110,6 @@ function AuthProvider({ children }: AuthProviderData) {
 
   useEffect(() => {
     api.defaults.headers["Client-Id"] = CLIENT_ID;
-    signIn();
   }, []);
 
   return (
