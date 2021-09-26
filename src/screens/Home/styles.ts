@@ -43,8 +43,8 @@ export const SignOutButton = styled(RectButton)`
   align-items: center;
   flex-direction: row;
 
-  padding: 12px;
-  border-radius: 5px;
+  padding: 15px;
+  border-radius: 50px;
 `;
 
 export const UserFollowedStreams = styled.View`

@@ -26,7 +26,7 @@ export const Info = styled.View`
   margin-top: 16px;
 
   flex-direction: row;
-  align-items: flex-end;
+  align-items:  center;
   justify-content: space-between;
 `;
 
@@ -40,8 +40,7 @@ export const Avatar = styled.Image`
 
 export const InfoText = styled.View`
   flex: 1;
-  height: 40px;
-
+  height: 50px;
   justify-content: space-between;
 `;
 
