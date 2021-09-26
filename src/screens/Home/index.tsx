@@ -18,6 +18,7 @@ import {
   UserFollowedStreamsTitle,
   TopGames,
   TopGamesTitle,
+  NotFound,
 } from "./styles";
 import { UserFollowedStreamCard } from "../../components/UserFollowedStreamCard";
 
@@ -52,6 +53,7 @@ export function Home() {
 
   const theme = useTheme();
   const { signOut, user, isLoggingOut } = useAuth();
+
   async function handleSignOut() {
     try {
       await signOut();
@@ -198,9 +200,7 @@ export function Home() {
             )}
           />
         ) : (
-          <UserInfoText style={{ fontFamily: theme.fonts.bold }}>
-            Nenhum canal está online!
-          </UserInfoText>
+          <NotFound>Nenhum canal está online!</NotFound>
         )}
       </UserFollowedStreams>
 

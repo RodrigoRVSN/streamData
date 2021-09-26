@@ -1,4 +1,4 @@
-import { makeRedirectUri, revokeAsync, startAsync } from "expo-auth-session";
+import { revokeAsync, startAsync } from "expo-auth-session";
 import React, {
   useEffect,
   createContext,
@@ -6,9 +6,10 @@ import React, {
   useState,
   ReactNode,
 } from "react";
-import { generateRandom } from "expo-auth-session/build/PKCE";
 
 import { api } from "../services/api";
+import { authUrl, STATE, twitchEndpoints } from "../services/authUrl";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface User {
   id: number;
@@ -31,36 +32,18 @@ interface AuthProviderData {
 
 const AuthContext = createContext({} as AuthContextData);
 
-const twitchEndpoints = {
-  authorization: "https://id.twitch.tv/oauth2/authorize",
-  revocation: "https://id.twitch.tv/oauth2/revoke",
-};
-
 function AuthProvider({ children }: AuthProviderData) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [user, setUser] = useState({} as User);
   const [userToken, setUserToken] = useState("");
   const { CLIENT_ID } = process.env;
+  const storageUserKey = "stream.data:user";
+  const storageTokenKey = "stream.data:token";
 
   async function signIn() {
     try {
       setIsLoggingIn(true);
-      const REDIRECT_URI = makeRedirectUri({ useProxy: true });
-      const RESPONSE_TYPE = "token";
-      const SCOPE = encodeURI("openid user:read:email user:read:follows");
-      const FORCE_VERIFY = true;
-      const STATE = generateRandom(30);
-
-      const authUrl =
-        twitchEndpoints.authorization +
-        `?client_id=${CLIENT_ID}` +
-        `&redirect_uri=${REDIRECT_URI}` +
-        `&response_type=${RESPONSE_TYPE}` +
-        `&scope=${SCOPE}` +
-        `&force_verify=${FORCE_VERIFY}` +
-        `&state=${STATE}`;
-
       const response = await startAsync({
         authUrl,
       });
@@ -75,14 +58,20 @@ function AuthProvider({ children }: AuthProviderData) {
         api.defaults.headers.authorization = `Bearer ${response.params.access_token}`;
         const userResponse = await api.get("/users");
 
-        setUser({
+        const userLogged = {
           id: userResponse.data.data[0].id,
           display_name: userResponse.data.data[0].display_name,
           email: userResponse.data.data[0].email,
           profile_image_url: userResponse.data.data[0].profile_image_url,
-        });
-
-        setUserToken(response.params.access_token);
+        };
+        const accessToken = response.params.access_token;
+        setUser(userLogged);
+        setUserToken(accessToken);
+        await AsyncStorage.setItem(storageUserKey, JSON.stringify(userLogged));
+        await AsyncStorage.setItem(
+          storageTokenKey,
+          JSON.stringify(accessToken)
+        );
       }
     } catch (error) {
       throw new Error("Erro ao fazer login na twitch.");
@@ -104,12 +93,28 @@ function AuthProvider({ children }: AuthProviderData) {
       setUser({} as User);
       setUserToken("");
       delete api.defaults.headers.authorization;
+      AsyncStorage.removeItem(storageUserKey);
+      AsyncStorage.removeItem(storageTokenKey);
       setIsLoggingOut(false);
+    }
+  }
+
+  async function loadData() {
+    const userData = await AsyncStorage.getItem(storageUserKey);
+    const tokenData = await AsyncStorage.getItem(storageTokenKey);
+    
+    if (userData && tokenData) {
+      const user = JSON.parse(userData);
+      const token = JSON.parse(tokenData);
+      setUser(user);
+      setUserToken(token);
+      api.defaults.headers.authorization = `Bearer ${token}`;
     }
   }
 
   useEffect(() => {
     api.defaults.headers["Client-Id"] = CLIENT_ID;
+    loadData();
   }, []);
 
   return (
